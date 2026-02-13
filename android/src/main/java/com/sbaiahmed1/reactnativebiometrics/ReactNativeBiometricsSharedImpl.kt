@@ -420,11 +420,10 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
             .setDigests(KeyProperties.DIGEST_SHA256)
             .setKeySize(256)
 
-          if (requireUserAuth) {
-            keyGenParameterSpecBuilder
-              .setUserAuthenticationRequired(true)
-              .setUserAuthenticationValidityDurationSeconds(-1) // Require auth for every use
-          }
+          // always requires user auth if using EC256
+          keyGenParameterSpecBuilder
+            .setUserAuthenticationRequired(true)
+            .setUserAuthenticationValidityDurationSeconds(-1) // Require auth for every use
 
           val keyGenParameterSpec = keyGenParameterSpecBuilder.build()
           keyPairGenerator.initialize(keyGenParameterSpec)
@@ -449,31 +448,9 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
             val isEnrollmentError = (e.cause is IllegalStateException && causeMessage.contains("At least one biometric must be enrolled")) ||
                                     message.contains("At least one biometric must be enrolled")
 
-            // Handle case where enrollment is missing despite checks
-            if (requireUserAuth && isEnrollmentError) {
-              debugLog("Failed to create auth-bound key: ${e.message}. Retrying without user authentication requirement.")
-              
-              // Retry without user authentication
-              val fallbackSpecBuilder = KeyGenParameterSpec.Builder(
-                actualKeyAlias,
-                KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
-              )
-                .setDigests(KeyProperties.DIGEST_SHA256)
-                .setKeySize(256)
-                
-              val fallbackSpec = fallbackSpecBuilder.build()
-              keyPairGenerator.initialize(fallbackSpec)
-              val keyPair = keyPairGenerator.generateKeyPair()
-              
-              val publicKey = keyPair.public
-              val publicKeyBytes = publicKey.encoded
-              val publicKeyString = BiometricUtils.encodeBase64(publicKeyBytes)
-
-              val result = Arguments.createMap()
-              result.putString("publicKey", publicKeyString)
-              
-              debugLog("EC Keys created successfully (fallback) with alias: $actualKeyAlias, requiresAuth: false, fallbackUsed: $fallbackUsed, actualStrength: $actualStrength")
-              promise.resolve(result)
+            debugLog("Failed to create auth-bound key: ${e.message}.")
+            if (isEnrollmentError) {
+              promise.reject("CREATE_KEYS_ERROR", "At least one biometric must be enrolled", null)
             } else {
               throw e
             }
