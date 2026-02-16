@@ -420,10 +420,22 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
             .setDigests(KeyProperties.DIGEST_SHA256)
             .setKeySize(256)
 
-          // always requires user auth if using EC256
+
+          // if (requireUserAuth) {
+          //   keyGenParameterSpecBuilder
+          //     .setUserAuthenticationRequired(true)
+          //     .setUserAuthenticationValidityDurationSeconds(-1) // Require auth for every use
+          // } else {
+          // Always require user auth for EC256 keys.
+          // Allow both strong biometrics and device credentials (PIN/pattern/password)
+          // so the BiometricPrompt can offer "Use PIN" when biometrics fail or are skipped.
           keyGenParameterSpecBuilder
             .setUserAuthenticationRequired(true)
-            .setUserAuthenticationValidityDurationSeconds(-1) // Require auth for every use
+            .setUserAuthenticationParameters(
+              0, // require auth for every use
+              KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
+            )
+
 
           val keyGenParameterSpec = keyGenParameterSpecBuilder.build()
           keyPairGenerator.initialize(keyGenParameterSpec)
@@ -929,16 +941,18 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
         val actualStrength = authenticatorResult.actualStrength
         val biometricStatus = biometricManager.canAuthenticate(authenticator)
 
+        // Include DEVICE_CREDENTIAL so the prompt offers a "Use PIN" option
         val authenticators = if (biometricStatus == BiometricManager.BIOMETRIC_SUCCESS) {
-          authenticator
+          authenticator or BiometricManager.Authenticators.DEVICE_CREDENTIAL
         } else {
-          // Check API level for device credential support
-          if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            BiometricManager.Authenticators.DEVICE_CREDENTIAL
-          } else {
-             // On API < 30, we use BIOMETRIC_WEAK | DEVICE_CREDENTIAL
-             BiometricManager.Authenticators.BIOMETRIC_WEAK or BiometricManager.Authenticators.DEVICE_CREDENTIAL
-          }
+          // // Check API level for device credential support
+          // if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+          //   BiometricManager.Authenticators.DEVICE_CREDENTIAL
+          // } else {
+          //    // On API < 30, we use BIOMETRIC_WEAK | DEVICE_CREDENTIAL
+          //    BiometricManager.Authenticators.BIOMETRIC_WEAK or BiometricManager.Authenticators.DEVICE_CREDENTIAL
+          // }
+          BiometricManager.Authenticators.DEVICE_CREDENTIAL
         }
 
         val promptInfoBuilder = BiometricPrompt.PromptInfo.Builder()
@@ -946,7 +960,9 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
           .setSubtitle("Please verify your identity to test the key")
           .setAllowedAuthenticators(authenticators)
 
-        if (authenticators == BiometricManager.Authenticators.BIOMETRIC_STRONG || authenticators == BiometricManager.Authenticators.BIOMETRIC_WEAK) {
+        // Negative button is only allowed when DEVICE_CREDENTIAL is NOT included
+        val includesDeviceCredential = (authenticators and BiometricManager.Authenticators.DEVICE_CREDENTIAL) != 0
+        if (!includesDeviceCredential) {
           promptInfoBuilder.setNegativeButtonText("Cancel")
         }
 
@@ -1173,17 +1189,25 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
       // 1. Biometrics are not available AND
       // 2. disableDeviceFallback is false
       val authenticators = when {
-        biometricStatus == BiometricManager.BIOMETRIC_SUCCESS -> authenticator
         disableDeviceFallback -> {
-          // User wants biometrics only - reject if not available
-          debugLog("verifyKeySignature - Biometrics not available and fallback disabled")
-          promise.resolve(
-            createSignatureErrorResult(
-              "Biometric authentication required but not available",
-              "BIOMETRIC_NOT_AVAILABLE"
+          if (biometricStatus == BiometricManager.BIOMETRIC_SUCCESS) {
+            debugLog("verifyKeySignature - Using biometric-only authenticator (fallback disabled)")
+            authenticator
+          } else {
+            debugLog("verifyKeySignature - Biometrics not available and fallback disabled")
+            promise.resolve(
+              createSignatureErrorResult(
+                "Biometric authentication required but not available",
+                "BIOMETRIC_NOT_AVAILABLE"
+              )
             )
-          )
-          return
+            return
+          }
+        }
+        biometricStatus == BiometricManager.BIOMETRIC_SUCCESS -> {
+          // Biometrics available — include device credential so the prompt offers "Use PIN"
+          debugLog("verifyKeySignature - Using BIOMETRIC + DEVICE_CREDENTIAL authenticators")
+          authenticator or BiometricManager.Authenticators.DEVICE_CREDENTIAL
         }
         else -> {
           // Fall back to device credential only if allowed
@@ -1197,8 +1221,9 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
         .setSubtitle(promptSubtitle ?: "Please verify your identity to generate signature")
         .setAllowedAuthenticators(authenticators)
 
-      if (authenticators == BiometricManager.Authenticators.BIOMETRIC_STRONG ||
-          authenticators == BiometricManager.Authenticators.BIOMETRIC_WEAK) {
+      // Negative button is only allowed when DEVICE_CREDENTIAL is NOT included
+      val includesDeviceCredential = (authenticators and BiometricManager.Authenticators.DEVICE_CREDENTIAL) != 0
+      if (!includesDeviceCredential) {
         promptInfoBuilder.setNegativeButtonText(cancelButtonText ?: "Cancel")
       }
 
