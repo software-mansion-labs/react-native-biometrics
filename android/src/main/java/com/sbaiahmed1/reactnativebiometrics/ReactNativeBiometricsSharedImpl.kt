@@ -421,11 +421,6 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
             .setKeySize(256)
 
 
-          // if (requireUserAuth) {
-          //   keyGenParameterSpecBuilder
-          //     .setUserAuthenticationRequired(true)
-          //     .setUserAuthenticationValidityDurationSeconds(-1) // Require auth for every use
-          // } else {
           // Always require user auth for EC256 keys.
           // Allow both strong biometrics and device credentials (PIN/pattern/password)
           // so the BiometricPrompt can offer "Use PIN" when biometrics fail or are skipped.
@@ -945,14 +940,13 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
         val authenticators = if (biometricStatus == BiometricManager.BIOMETRIC_SUCCESS) {
           authenticator or BiometricManager.Authenticators.DEVICE_CREDENTIAL
         } else {
-          // // Check API level for device credential support
-          // if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-          //   BiometricManager.Authenticators.DEVICE_CREDENTIAL
-          // } else {
-          //    // On API < 30, we use BIOMETRIC_WEAK | DEVICE_CREDENTIAL
-          //    BiometricManager.Authenticators.BIOMETRIC_WEAK or BiometricManager.Authenticators.DEVICE_CREDENTIAL
-          // }
-          BiometricManager.Authenticators.DEVICE_CREDENTIAL
+          // Check API level for device credential support
+          if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            BiometricManager.Authenticators.DEVICE_CREDENTIAL
+          } else {
+             // On API < 30, we use BIOMETRIC_WEAK | DEVICE_CREDENTIAL
+             BiometricManager.Authenticators.BIOMETRIC_WEAK or BiometricManager.Authenticators.DEVICE_CREDENTIAL
+          }
         }
 
         val promptInfoBuilder = BiometricPrompt.PromptInfo.Builder()
