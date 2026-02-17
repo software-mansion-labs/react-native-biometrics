@@ -196,6 +196,16 @@ describe('ReactNativeBiometrics', () => {
       expect(result).toEqual(MOCK_RESPONSES.keyCreation);
     });
 
+    it('should create biometric keys with device credentials fallback', async () => {
+      const result = await Biometrics.createKeys(
+        'testAlias',
+        'ec256',
+        undefined,
+        true
+      );
+      expect(result).toEqual(MOCK_RESPONSES.keyCreation);
+    });
+
     it('should delete biometric keys', async () => {
       const result = await Biometrics.deleteKeys('testAlias');
       expect(result).toEqual(MOCK_RESPONSES.keyDeletion);

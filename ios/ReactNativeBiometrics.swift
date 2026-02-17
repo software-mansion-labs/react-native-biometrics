@@ -350,9 +350,11 @@ class ReactNativeBiometrics: RCTEventEmitter {
   func createKeys(_ keyAlias: NSString?,
                   keyType: NSString?,
                   biometricStrength: NSString?,
+                  allowDeviceCredentials: NSNumber?,
                   resolver resolve: @escaping RCTPromiseResolveBlock,
                   rejecter reject: @escaping RCTPromiseRejectBlock) {
-    ReactNativeBiometricDebug.debugLog("createKeys called with keyAlias: \(keyAlias ?? "default"), keyType: \(keyType ?? "ec256"), biometricStrength: \(biometricStrength ?? "strong")")
+    let deviceCredentialsFallback = allowDeviceCredentials?.boolValue ?? false
+    ReactNativeBiometricDebug.debugLog("createKeys called with keyAlias: \(keyAlias ?? "default"), keyType: \(keyType ?? "ec256"), biometricStrength: \(biometricStrength ?? "strong"), allowDeviceCredentials: \(deviceCredentialsFallback)")
     
     let keyTag = getKeyAlias(keyAlias as String?)
     guard let keyTagData = keyTag.data(using: .utf8) else {
@@ -383,7 +385,12 @@ class ReactNativeBiometrics: RCTEventEmitter {
     ReactNativeBiometricDebug.debugLog("Deleted existing key (if any)")
     
     // Create access control for biometric authentication
-    guard let accessControl = createBiometricAccessControl(for: biometricKeyType) else {
+    // When allowDeviceCredentials is true, uses .userPresence (biometry + passcode fallback)
+    // instead of .biometryAny (biometry only). Secure Enclave is still used for key storage.
+    guard let accessControl = createBiometricAccessControl(
+      for: biometricKeyType,
+      allowDeviceCredentialsFallback: deviceCredentialsFallback
+    ) else {
       ReactNativeBiometricDebug.debugLog("createKeys failed - Could not create access control")
       handleError(.accessControlCreationFailed, reject: reject)
       return
