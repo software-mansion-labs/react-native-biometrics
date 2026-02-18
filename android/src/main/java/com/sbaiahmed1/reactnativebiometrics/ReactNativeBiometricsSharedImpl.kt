@@ -931,22 +931,17 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
 
         // Use shared helper to determine authenticator with fallback logic
         val authenticatorResult = BiometricUtils.determineAuthenticator(context, biometricStrength)
-        val authenticator = authenticatorResult.authenticator
+        val authenticators = authenticatorResult.authenticator
         val fallbackUsed = authenticatorResult.fallbackUsed
         val actualStrength = authenticatorResult.actualStrength
-        val biometricStatus = biometricManager.canAuthenticate(authenticator)
+        val biometricStatus = biometricManager.canAuthenticate(authenticators)
 
-        // Include DEVICE_CREDENTIAL so the prompt offers a "Use PIN" option
-        val authenticators = if (biometricStatus == BiometricManager.BIOMETRIC_SUCCESS) {
-          authenticator or BiometricManager.Authenticators.DEVICE_CREDENTIAL
-        } else {
-          // Check API level for device credential support
-          if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            BiometricManager.Authenticators.DEVICE_CREDENTIAL
-          } else {
-             // On API < 30, we use BIOMETRIC_WEAK | DEVICE_CREDENTIAL
-             BiometricManager.Authenticators.BIOMETRIC_WEAK or BiometricManager.Authenticators.DEVICE_CREDENTIAL
-          }
+        if (biometricStatus != BiometricManager.BIOMETRIC_SUCCESS) {
+          debugLog("validateKeyIntegrity failed - Can't authenticate")
+          result.putString("error", "Can't authenticate with key authenticators")
+          result.putMap("integrityChecks", integrityChecks)
+          promise.resolve(result)
+          return
         }
 
         val promptInfoBuilder = BiometricPrompt.PromptInfo.Builder()
