@@ -21,6 +21,7 @@ RCT_EXTERN_METHOD(createKeys:
     (NSString *)keyAlias
     keyType:(NSString *)keyType
     biometricStrength:(NSString *)biometricStrength
+    requireUserAuth:(NSNumber *)requireUserAuth
     resolver:(RCTPromiseResolveBlock)resolve
     rejecter:(RCTPromiseRejectBlock)reject)
 

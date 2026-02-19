@@ -311,11 +311,11 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
     createKeysWithType(keyAlias, null, null, promise)
   }
 
-  fun createKeysWithType(keyAlias: String?, keyType: String?, biometricStrength: String?, promise: Promise) {
+  fun createKeysWithType(keyAlias: String?, keyType: String?, biometricStrength: String?, requireUserAuth: Boolean = false, promise: Promise) {
     val actualKeyAlias = getKeyAlias(keyAlias)
     val actualKeyType = keyType?.lowercase() ?: "rsa2048"
     val requestedStrength = biometricStrength ?: "strong"
-    debugLog("createKeys called with keyAlias: ${keyAlias ?: "default"}, using: $actualKeyAlias, keyType: $actualKeyType, biometricStrength: $requestedStrength")
+    debugLog("createKeys called with keyAlias: ${keyAlias ?: "default"}, using: $actualKeyAlias, keyType: $actualKeyType, biometricStrength: $requestedStrength, requireUserAuth: $requireUserAuth")
 
     try {
       // Check if key already exists
@@ -326,17 +326,6 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
         debugLog("Key already exists, deleting existing key")
         keyStore.deleteEntry(actualKeyAlias)
       }
-
-      // Use shared helper to determine authenticator with fallback logic
-      val authenticatorResult = BiometricUtils.determineAuthenticator(context, biometricStrength)
-      val authenticator = authenticatorResult.authenticator
-      val fallbackUsed = authenticatorResult.fallbackUsed
-      val actualStrength = authenticatorResult.actualStrength
-      val isAvailable = authenticatorResult.isAvailable
-
-      // Determine if we should require user authentication
-      // Always require authentication when biometrics are available, regardless of strength
-      val requireUserAuth = isAvailable
 
       // Generate new key pair based on key type
       when (actualKeyType) {
@@ -370,7 +359,7 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
             val result = Arguments.createMap()
             result.putString("publicKey", publicKeyString)
 
-            debugLog("RSA Keys created successfully with alias: $actualKeyAlias, requiresAuth: $requireUserAuth, strength: $requestedStrength, fallbackUsed: $fallbackUsed, actualStrength: $actualStrength")
+            debugLog("RSA Keys created successfully with alias: $actualKeyAlias, requiresAuth: $requireUserAuth")
             promise.resolve(result)
           } catch (e: java.security.InvalidAlgorithmParameterException) {
             // Check for enrollment error in both exception message and cause
@@ -417,7 +406,7 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
             val result = Arguments.createMap()
             result.putString("publicKey", publicKeyString)
 
-            debugLog("EC Keys created successfully with alias: $actualKeyAlias, requiresAuth: $requireUserAuth, strength: $requestedStrength, fallbackUsed: $fallbackUsed, actualStrength: $actualStrength")
+            debugLog("EC Keys created successfully with alias: $actualKeyAlias, requiresAuth: $requireUserAuth")
             promise.resolve(result)
           } catch (e: java.security.InvalidAlgorithmParameterException) {
             // Check for enrollment error in both exception message and cause
