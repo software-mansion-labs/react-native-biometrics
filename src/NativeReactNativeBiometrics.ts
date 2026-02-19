@@ -46,7 +46,8 @@ export interface Spec extends TurboModule {
   createKeys(
     keyAlias?: string | null,
     keyType?: string | null,
-    biometricStrength?: 'weak' | 'strong' | null
+    biometricStrength?: 'weak' | 'strong' | null,
+    requireUserAuth?: boolean | null
   ): Promise<{
     publicKey: string;
   }>;
