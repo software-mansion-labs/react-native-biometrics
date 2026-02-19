@@ -308,14 +308,14 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
   }
 
   fun createKeys(keyAlias: String?, promise: Promise) {
-    createKeysWithType(keyAlias, null, null, promise)
+    createKeysWithType(keyAlias, null, null, false, promise)
   }
 
-  fun createKeysWithType(keyAlias: String?, keyType: String?, biometricStrength: String?, promise: Promise) {
+  fun createKeysWithType(keyAlias: String?, keyType: String?, biometricStrength: String?, allowDeviceCredentials: Boolean, promise: Promise) {
     val actualKeyAlias = getKeyAlias(keyAlias)
     val actualKeyType = keyType?.lowercase() ?: "rsa2048"
     val requestedStrength = biometricStrength ?: "strong"
-    debugLog("createKeys called with keyAlias: ${keyAlias ?: "default"}, using: $actualKeyAlias, keyType: $actualKeyType, biometricStrength: $requestedStrength")
+    debugLog("createKeys called with keyAlias: ${keyAlias ?: "default"}, using: $actualKeyAlias, keyType: $actualKeyType, biometricStrength: $requestedStrength, allowDeviceCredentials: $allowDeviceCredentials")
 
     try {
       // Check if key already exists
@@ -338,10 +338,16 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
             .setDigests(KeyProperties.DIGEST_SHA256)
             .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
             .setKeySize(2048)
-            
-          keyGenParameterSpecBuilder
-            .setUserAuthenticationRequired(true)
-            .setUserAuthenticationValidityDurationSeconds(-1) // Require auth for every use
+
+          keyGenParameterSpecBuilder.setUserAuthenticationRequired(true)
+          if (allowDeviceCredentials) {
+            keyGenParameterSpecBuilder.setUserAuthenticationParameters(
+              0, // require auth for every use
+              KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
+            )
+          } else {
+            keyGenParameterSpecBuilder.setUserAuthenticationValidityDurationSeconds(-1) // Biometric only
+          }
 
           val keyGenParameterSpec = keyGenParameterSpecBuilder.build()
           keyPairGenerator.initialize(keyGenParameterSpec)
@@ -383,10 +389,16 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
           )
             .setDigests(KeyProperties.DIGEST_SHA256)
             .setKeySize(256)
-            
-          keyGenParameterSpecBuilder
-            .setUserAuthenticationRequired(true)
-            .setUserAuthenticationValidityDurationSeconds(-1) // Require auth for every use
+
+          keyGenParameterSpecBuilder.setUserAuthenticationRequired(true)
+          if (allowDeviceCredentials) {
+            keyGenParameterSpecBuilder.setUserAuthenticationParameters(
+              0, // require auth for every use
+              KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
+            )
+          } else {
+            keyGenParameterSpecBuilder.setUserAuthenticationValidityDurationSeconds(-1) // Biometric only
+          }
 
           val keyGenParameterSpec = keyGenParameterSpecBuilder.build()
           keyPairGenerator.initialize(keyGenParameterSpec)
