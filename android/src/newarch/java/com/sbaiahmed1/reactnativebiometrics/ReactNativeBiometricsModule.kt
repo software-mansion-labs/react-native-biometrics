@@ -68,7 +68,7 @@ class ReactNativeBiometricsModule(reactContext: ReactApplicationContext) :
   }
 
   @ReactMethod
-  override fun createKeys(keyAlias: String?, keyType: String?, biometricStrength: String?, promise: Promise) {
+  override fun createKeys(keyAlias: String?, keyType: String?, biometricStrength: String?, allowDeviceCredentials: Boolean?, promise: Promise) {
     sharedImpl.createKeysWithType(keyAlias, keyType, biometricStrength, promise)
   }
 
