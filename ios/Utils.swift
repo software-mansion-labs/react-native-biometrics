@@ -147,10 +147,22 @@ public func createKeychainQuery(
 
 /**
  * Creates access control for biometric authentication
- * - Parameter keyType: The type of key being created
+ * - Parameters:
+ *   - keyType: The type of key being created
+ *   - allowDeviceCredentialsFallback: When true, allows passcode fallback after biometry fails or is unavailable.
  * - Returns: SecAccessControl for biometric keys or nil if creation fails
  */
-public func createBiometricAccessControl(for keyType: BiometricKeyType = .ec256) -> SecAccessControl? {
+public func createBiometricAccessControl(
+  for keyType: BiometricKeyType = .ec256,
+  allowDeviceCredentialsFallback: Bool = false
+) -> SecAccessControl? {
+  // Determine the authentication constraint:
+  // - .biometryAny: biometrics only (no passcode fallback)
+  // - .userPresence: biometry first, with passcode fallback if biometry fails or is unavailable
+  let authConstraint: SecAccessControlCreateFlags = allowDeviceCredentialsFallback
+    ? .userPresence
+    : .biometryAny
+
   // For RSA keys (not in Secure Enclave), we use access control matching old Objective-C implementation
   if keyType == .rsa2048 {
     // Use kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly with kSecAccessControlBiometryAny
@@ -166,7 +178,7 @@ kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly,
     return SecAccessControlCreateWithFlags(
       kCFAllocatorDefault,
       kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-      [.biometryAny, .privateKeyUsage],
+      [authConstraint, .privateKeyUsage],
       nil
     )
   }
