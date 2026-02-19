@@ -311,11 +311,11 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
     createKeysWithType(keyAlias, null, null, promise)
   }
 
-  fun createKeysWithType(keyAlias: String?, keyType: String?, biometricStrength: String?, requireUserAuth: Boolean = false, promise: Promise) {
+  fun createKeysWithType(keyAlias: String?, keyType: String?, biometricStrength: String?, promise: Promise) {
     val actualKeyAlias = getKeyAlias(keyAlias)
     val actualKeyType = keyType?.lowercase() ?: "rsa2048"
     val requestedStrength = biometricStrength ?: "strong"
-    debugLog("createKeys called with keyAlias: ${keyAlias ?: "default"}, using: $actualKeyAlias, keyType: $actualKeyType, biometricStrength: $requestedStrength, requireUserAuth: $requireUserAuth")
+    debugLog("createKeys called with keyAlias: ${keyAlias ?: "default"}, using: $actualKeyAlias, keyType: $actualKeyType, biometricStrength: $requestedStrength")
 
     try {
       // Check if key already exists
@@ -338,19 +338,17 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
             .setDigests(KeyProperties.DIGEST_SHA256)
             .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
             .setKeySize(2048)
-
-          if (requireUserAuth) {
-            keyGenParameterSpecBuilder
-              .setUserAuthenticationRequired(true)
-              .setUserAuthenticationValidityDurationSeconds(-1) // Require auth for every use
-          }
+            
+          keyGenParameterSpecBuilder
+            .setUserAuthenticationRequired(true)
+            .setUserAuthenticationValidityDurationSeconds(-1) // Require auth for every use
 
           val keyGenParameterSpec = keyGenParameterSpecBuilder.build()
           keyPairGenerator.initialize(keyGenParameterSpec)
-          
+
           try {
             val keyPair = keyPairGenerator.generateKeyPair()
-            
+
             // Get public key and encode it
             val publicKey = keyPair.public
             val publicKeyBytes = publicKey.encoded
@@ -359,7 +357,7 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
             val result = Arguments.createMap()
             result.putString("publicKey", publicKeyString)
 
-            debugLog("RSA Keys created successfully with alias: $actualKeyAlias, requiresAuth: $requireUserAuth")
+            debugLog("RSA Keys created successfully with alias: $actualKeyAlias")
             promise.resolve(result)
           } catch (e: java.security.InvalidAlgorithmParameterException) {
             // Check for enrollment error in both exception message and cause
@@ -385,16 +383,14 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
           )
             .setDigests(KeyProperties.DIGEST_SHA256)
             .setKeySize(256)
-
-          if (requireUserAuth) {
-            keyGenParameterSpecBuilder
-              .setUserAuthenticationRequired(true)
-              .setUserAuthenticationValidityDurationSeconds(-1) // Require auth for every use
-          }
+            
+          keyGenParameterSpecBuilder
+            .setUserAuthenticationRequired(true)
+            .setUserAuthenticationValidityDurationSeconds(-1) // Require auth for every use
 
           val keyGenParameterSpec = keyGenParameterSpecBuilder.build()
           keyPairGenerator.initialize(keyGenParameterSpec)
-          
+
           try {
             val keyPair = keyPairGenerator.generateKeyPair()
 
@@ -406,7 +402,7 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
             val result = Arguments.createMap()
             result.putString("publicKey", publicKeyString)
 
-            debugLog("EC Keys created successfully with alias: $actualKeyAlias, requiresAuth: $requireUserAuth")
+            debugLog("EC Keys created successfully with alias: $actualKeyAlias")
             promise.resolve(result)
           } catch (e: java.security.InvalidAlgorithmParameterException) {
             // Check for enrollment error in both exception message and cause

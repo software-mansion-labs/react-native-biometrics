@@ -160,20 +160,14 @@ export function authenticateWithOptions(
 export function createKeys(
   keyAlias?: string,
   keyType?: 'rsa2048' | 'ec256',
-  biometricStrength?: BiometricStrength,
-  requireUserAuth?: boolean
+  biometricStrength?: BiometricStrength
 ): Promise<KeyCreationResult> {
   logger.debug('Creating biometric keys', 'createKeys', {
     keyAlias,
     keyType,
     biometricStrength,
   });
-  return ReactNativeBiometrics.createKeys(
-    keyAlias,
-    keyType,
-    biometricStrength,
-    requireUserAuth
-  )
+  return ReactNativeBiometrics.createKeys(keyAlias, keyType, biometricStrength)
     .then((result) => {
       logger.info('Keys created successfully', 'createKeys', {
         keyAlias,
