@@ -42,8 +42,8 @@ class ReactNativeBiometricsModule(reactContext: ReactApplicationContext) :
   }
 
   @ReactMethod
-  fun createKeys(keyAlias: String?, keyType: String?, biometricStrength: String?, requireUserAuth: Boolean?, promise: Promise) {
-    sharedImpl.createKeysWithType(keyAlias, keyType, biometricStrength, requireUserAuth ?: false, promise)
+  fun createKeys(keyAlias: String?, keyType: String?, biometricStrength: String?, promise: Promise) {
+    sharedImpl.createKeysWithType(keyAlias, keyType, biometricStrength, promise)
   }
 
   @ReactMethod
