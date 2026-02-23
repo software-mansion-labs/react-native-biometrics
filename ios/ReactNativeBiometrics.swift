@@ -763,6 +763,7 @@ class ReactNativeBiometrics: RCTEventEmitter {
       keyTag: keyTag,
       includeSecureEnclave: true,
       promptTitle: promptTitle,
+      cancelButtonText: cancelButtonText,
       returnRef: true
     )
     
@@ -774,6 +775,7 @@ class ReactNativeBiometrics: RCTEventEmitter {
         keyTag: keyTag,
         includeSecureEnclave: false,
         promptTitle: promptTitle,
+        cancelButtonText: cancelButtonText,
         returnRef: true
       )
       
