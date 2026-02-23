@@ -353,7 +353,7 @@ class ReactNativeBiometrics: RCTEventEmitter {
                   resolver resolve: @escaping RCTPromiseResolveBlock,
                   rejecter reject: @escaping RCTPromiseRejectBlock) {
     ReactNativeBiometricDebug.debugLog("createKeys called with keyAlias: \(keyAlias ?? "default"), keyType: \(keyType ?? "ec256"), biometricStrength: \(biometricStrength ?? "strong")")
-
+    
     let keyTag = getKeyAlias(keyAlias as String?)
     guard let keyTagData = keyTag.data(using: .utf8) else {
       handleError(.dataEncodingFailed, reject: reject)
