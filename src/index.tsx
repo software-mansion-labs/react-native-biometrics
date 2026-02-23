@@ -172,7 +172,7 @@ export function createKeys(
     keyAlias,
     keyType,
     biometricStrength,
-    allowDeviceCredentials
+    allowDeviceCredentials ?? false
   )
     .then((result) => {
       logger.info('Keys created successfully', 'createKeys', {
