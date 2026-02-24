@@ -88,27 +88,29 @@ object BiometricUtils {
         var requiredAuthenticator = BiometricManager.Authenticators.BIOMETRIC_STRONG
 
         try {
-            val factory = KeyFactory.getInstance(privateKey.algorithm, "AndroidKeyStore")
-            val keyInfo = factory.getKeySpec(privateKey, KeyInfo::class.java)
-            val authTypes = keyInfo.userAuthenticationType
-            
-            // Reset the default; build strictly from flags
-            var authenticatorMask = 0
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                val factory = KeyFactory.getInstance(privateKey.algorithm, "AndroidKeyStore")
+                val keyInfo = factory.getKeySpec(privateKey, KeyInfo::class.java)
+                val authTypes = keyInfo.userAuthenticationType
+                
+                // Reset the default; build strictly from flags
+                var authenticatorMask = 0
 
-            if ((authTypes and KeyProperties.AUTH_BIOMETRIC_STRONG) != 0) {
-                authenticatorMask = authenticatorMask or BiometricManager.Authenticators.BIOMETRIC_STRONG
-            }
-            
-            if ((authTypes and KeyProperties.AUTH_DEVICE_CREDENTIAL) != 0) {
-                authenticatorMask = authenticatorMask or BiometricManager.Authenticators.DEVICE_CREDENTIAL
-            }
+                if ((authTypes and KeyProperties.AUTH_BIOMETRIC_STRONG) != 0) {
+                    authenticatorMask = authenticatorMask or BiometricManager.Authenticators.BIOMETRIC_STRONG
+                }
+                
+                if ((authTypes and KeyProperties.AUTH_DEVICE_CREDENTIAL) != 0) {
+                    authenticatorMask = authenticatorMask or BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                }
 
-            // If mask is 0 (no auth required), use the default
-            if (authenticatorMask != 0) {
-                requiredAuthenticator = authenticatorMask
+                // If mask is 0 (no auth required), use the default
+                if (authenticatorMask != 0) {
+                    requiredAuthenticator = authenticatorMask
+                }
             }
         } catch (e: Exception) {
-            // Stick to the default BIOMETRIC_STRONG to handle Android API <30
+            debugLog(context, "getKeyAuthenticator failed - default to BIOMETRIC_STRONG: ${e.message}")
         }
 
         val status = biometricManager.canAuthenticate(requiredAuthenticator)
