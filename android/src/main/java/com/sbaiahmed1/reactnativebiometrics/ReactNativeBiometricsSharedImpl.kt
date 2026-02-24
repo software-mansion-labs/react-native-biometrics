@@ -344,10 +344,16 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
 
             builder.setUserAuthenticationRequired(true)
             if (allowDeviceCredentials) {
-              builder.setUserAuthenticationParameters(
-                0, // require auth for every use
-                KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
-              )
+              if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                builder.setUserAuthenticationParameters(
+                  0, // require auth for every use
+                  KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
+                )
+              } else {
+                debugLog("createKeys failed - allowDeviceCredentials requires Android API 30+")
+                promise.reject("CREATE_KEYS_ERROR", "allowDeviceCredentials requires Android API 30+", null)
+                return
+              }
             } else {
               builder.setUserAuthenticationValidityDurationSeconds(-1) // Biometric only
             }
@@ -421,10 +427,16 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
 
             builder.setUserAuthenticationRequired(true)
             if (allowDeviceCredentials) {
-              builder.setUserAuthenticationParameters(
-                0, // require auth for every use
-                KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
-              )
+              if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                builder.setUserAuthenticationParameters(
+                  0, // require auth for every use
+                  KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
+                )
+              } else {
+                debugLog("createKeys failed - allowDeviceCredentials requires Android API 30+")
+                promise.reject("CREATE_KEYS_ERROR", "allowDeviceCredentials requires Android API 30+", null)
+                return
+              }
             } else {
               builder.setUserAuthenticationValidityDurationSeconds(-1) // Biometric only
             }

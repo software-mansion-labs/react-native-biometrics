@@ -167,6 +167,7 @@ export function createKeys(
     keyAlias,
     keyType,
     biometricStrength,
+    allowDeviceCredentials,
   });
   return ReactNativeBiometrics.createKeys(
     keyAlias,
