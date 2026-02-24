@@ -331,29 +331,55 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
       when (actualKeyType) {
         "rsa2048" -> {
           val keyPairGenerator = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore")
-          val keyGenParameterSpecBuilder = KeyGenParameterSpec.Builder(
-            actualKeyAlias,
-            KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
-          )
-            .setDigests(KeyProperties.DIGEST_SHA256)
-            .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
-            .setKeySize(2048)
+          val useStrongBox = BiometricUtils.isStrongBoxAvailable(context)
 
-          keyGenParameterSpecBuilder.setUserAuthenticationRequired(true)
-          if (allowDeviceCredentials) {
-            keyGenParameterSpecBuilder.setUserAuthenticationParameters(
-              0, // require auth for every use
-              KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
+          fun buildRsaSpec(strongBox: Boolean): KeyGenParameterSpec {
+            val builder = KeyGenParameterSpec.Builder(
+              actualKeyAlias,
+              KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
             )
-          } else {
-            keyGenParameterSpecBuilder.setUserAuthenticationValidityDurationSeconds(-1) // Biometric only
+              .setDigests(KeyProperties.DIGEST_SHA256)
+              .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
+              .setKeySize(2048)
+
+            builder.setUserAuthenticationRequired(true)
+            if (allowDeviceCredentials) {
+              builder.setUserAuthenticationParameters(
+                0, // require auth for every use
+                KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
+              )
+            } else {
+              builder.setUserAuthenticationValidityDurationSeconds(-1) // Biometric only
+            }
+
+            if (strongBox) {
+              builder.setIsStrongBoxBacked(true)
+            }
+
+            return builder.build()
           }
 
-          val keyGenParameterSpec = keyGenParameterSpecBuilder.build()
-          keyPairGenerator.initialize(keyGenParameterSpec)
-
           try {
-            val keyPair = keyPairGenerator.generateKeyPair()
+            val keyPair = if (useStrongBox) {
+              keyPairGenerator.initialize(buildRsaSpec(true))
+              try {
+                debugLog("Attempting RSA key generation with StrongBox")
+                keyPairGenerator.generateKeyPair()
+              } catch (e: Exception) {
+                when {
+                  e is android.security.keystore.StrongBoxUnavailableException ||
+                  e.cause is android.security.keystore.StrongBoxUnavailableException ->
+                    debugLog("StrongBox unavailable for RSA 2048, falling back to TEE: $e")
+                  else ->
+                    debugLog("StrongBox failed unexpectedly for RSA 2048, falling back to TEE: $e")
+                }
+                keyPairGenerator.initialize(buildRsaSpec(false))
+                keyPairGenerator.generateKeyPair()
+              }
+            } else {
+              keyPairGenerator.initialize(buildRsaSpec(false))
+              keyPairGenerator.generateKeyPair()
+            }
 
             // Get public key and encode it
             val publicKey = keyPair.public
@@ -383,28 +409,55 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
 
         "ec256" -> {
           val keyPairGenerator = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, "AndroidKeyStore")
-          val keyGenParameterSpecBuilder = KeyGenParameterSpec.Builder(
-            actualKeyAlias,
-            KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
-          )
-            .setDigests(KeyProperties.DIGEST_SHA256)
-            .setKeySize(256)
+          val useStrongBox = BiometricUtils.isStrongBoxAvailable(context)
 
-          keyGenParameterSpecBuilder.setUserAuthenticationRequired(true)
-          if (allowDeviceCredentials) {
-            keyGenParameterSpecBuilder.setUserAuthenticationParameters(
-              0, // require auth for every use
-              KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
+          fun buildEcSpec(strongBox: Boolean): KeyGenParameterSpec {
+            val builder = KeyGenParameterSpec.Builder(
+              actualKeyAlias,
+              KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
             )
-          } else {
-            keyGenParameterSpecBuilder.setUserAuthenticationValidityDurationSeconds(-1) // Biometric only
+              .setDigests(KeyProperties.DIGEST_SHA256)
+              .setKeySize(256)
+
+            builder.setUserAuthenticationRequired(true)
+            if (allowDeviceCredentials) {
+              builder.setUserAuthenticationParameters(
+                0, // require auth for every use
+                KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
+              )
+            } else {
+              builder.setUserAuthenticationValidityDurationSeconds(-1) // Biometric only
+            }
+
+            if (strongBox) {
+              builder.setIsStrongBoxBacked(true)
+            }
+
+            return builder.build()
           }
 
-          val keyGenParameterSpec = keyGenParameterSpecBuilder.build()
-          keyPairGenerator.initialize(keyGenParameterSpec)
-
           try {
-            val keyPair = keyPairGenerator.generateKeyPair()
+            debugLog("Strongbox available: $useStrongBox")
+            val keyPair = if (useStrongBox) {
+              keyPairGenerator.initialize(buildEcSpec(true))
+              try {
+                debugLog("Attempting EC key generation with StrongBox")
+                keyPairGenerator.generateKeyPair()
+              } catch (e: Exception) {
+                when {
+                  e is android.security.keystore.StrongBoxUnavailableException ||
+                  e.cause is android.security.keystore.StrongBoxUnavailableException ->
+                    debugLog("StrongBox unavailable for EC 256, falling back to TEE: $e")
+                  else ->
+                    debugLog("StrongBox failed unexpectedly for EC 256, falling back to TEE: $e")
+                }
+                keyPairGenerator.initialize(buildEcSpec(false))
+                keyPairGenerator.generateKeyPair()
+              }
+            } else {
+              keyPairGenerator.initialize(buildEcSpec(false))
+              keyPairGenerator.generateKeyPair()
+            }
 
             // Get public key and encode it
             val publicKey = keyPair.public
