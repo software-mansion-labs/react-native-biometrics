@@ -165,12 +165,12 @@ public func createBiometricAccessControl(
 
   // For RSA keys (not in Secure Enclave), we use access control matching old Objective-C implementation
   if keyType == .rsa2048 {
-    // Use kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly with kSecAccessControlBiometryAny
-    // matching the old implementation default behavior (when allowDeviceCredentials == FALSE)
+    // Use kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly with authConstraint, preserving the old default behavior
+    // (when allowDeviceCredentials is false, authConstraint = .biometryAny)
     return SecAccessControlCreateWithFlags(
       kCFAllocatorDefault,
-kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly,
-.biometryAny,
+      kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly,
+      authConstraint,
       nil
     )
   } else {
