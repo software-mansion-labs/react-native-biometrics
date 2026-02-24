@@ -341,11 +341,15 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
 
           keyGenParameterSpecBuilder.setUserAuthenticationRequired(true)
           if (allowDeviceCredentials) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
               keyGenParameterSpecBuilder.setUserAuthenticationParameters(
                 0, // require auth for every use
                 KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
               )
+            } else {
+              debugLog("createKeys failed - allowDeviceCredentials requires Android API 30+")
+              promise.reject("CREATE_KEYS_ERROR", "allowDeviceCredentials requires Android API 30+", null)
+              return
             } else {
               debugLog("createKeys failed - allowDeviceCredentials requires Android API 30+")
               promise.reject("CREATE_KEYS_ERROR", "allowDeviceCredentials requires Android API 30+", null)
@@ -398,11 +402,15 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
 
           keyGenParameterSpecBuilder.setUserAuthenticationRequired(true)
           if (allowDeviceCredentials) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
               keyGenParameterSpecBuilder.setUserAuthenticationParameters(
                 0, // require auth for every use
                 KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
               )
+            } else {
+              debugLog("createKeys failed - allowDeviceCredentials requires Android API 30+")
+              promise.reject("CREATE_KEYS_ERROR", "allowDeviceCredentials requires Android API 30+", null)
+              return
             } else {
               debugLog("createKeys failed - allowDeviceCredentials requires Android API 30+")
               promise.reject("CREATE_KEYS_ERROR", "allowDeviceCredentials requires Android API 30+", null)
