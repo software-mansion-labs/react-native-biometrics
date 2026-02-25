@@ -317,6 +317,12 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
     val requestedStrength = biometricStrength ?: "strong"
     debugLog("createKeys called with keyAlias: ${keyAlias ?: "default"}, using: $actualKeyAlias, keyType: $actualKeyType, biometricStrength: $requestedStrength, allowDeviceCredentials: $allowDeviceCredentials")
 
+    if (allowDeviceCredentials && android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R) {
+      debugLog("createKeys failed - allowDeviceCredentials requires Android API 30+")
+      promise.reject("CREATE_KEYS_ERROR", "allowDeviceCredentials requires Android API 30+", null)
+      return
+    }
+
     try {
       // Check if key already exists
       val keyStore = KeyStore.getInstance("AndroidKeyStore")
@@ -341,20 +347,10 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
 
           keyGenParameterSpecBuilder.setUserAuthenticationRequired(true)
           if (allowDeviceCredentials) {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-              keyGenParameterSpecBuilder.setUserAuthenticationParameters(
-                0, // require auth for every use
-                KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
-              )
-            } else {
-              debugLog("createKeys failed - allowDeviceCredentials requires Android API 30+")
-              promise.reject("CREATE_KEYS_ERROR", "allowDeviceCredentials requires Android API 30+", null)
-              return
-            } else {
-              debugLog("createKeys failed - allowDeviceCredentials requires Android API 30+")
-              promise.reject("CREATE_KEYS_ERROR", "allowDeviceCredentials requires Android API 30+", null)
-              return
-            }
+            keyGenParameterSpecBuilder.setUserAuthenticationParameters(
+              0, // require auth for every use
+              KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
+            )
           } else {
             keyGenParameterSpecBuilder.setUserAuthenticationValidityDurationSeconds(-1) // Biometric only
           }
@@ -402,20 +398,10 @@ class ReactNativeBiometricsSharedImpl(private val context: ReactApplicationConte
 
           keyGenParameterSpecBuilder.setUserAuthenticationRequired(true)
           if (allowDeviceCredentials) {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-              keyGenParameterSpecBuilder.setUserAuthenticationParameters(
-                0, // require auth for every use
-                KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
-              )
-            } else {
-              debugLog("createKeys failed - allowDeviceCredentials requires Android API 30+")
-              promise.reject("CREATE_KEYS_ERROR", "allowDeviceCredentials requires Android API 30+", null)
-              return
-            } else {
-              debugLog("createKeys failed - allowDeviceCredentials requires Android API 30+")
-              promise.reject("CREATE_KEYS_ERROR", "allowDeviceCredentials requires Android API 30+", null)
-              return
-            }
+            keyGenParameterSpecBuilder.setUserAuthenticationParameters(
+              0, // require auth for every use
+              KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
+            )
           } else {
             keyGenParameterSpecBuilder.setUserAuthenticationValidityDurationSeconds(-1) // Biometric only
           }
